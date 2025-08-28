@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <title>Мессенджер</title>
+</head>
+<body>
+    <h2>Вход</h2>
+    <input type="text" id="username" placeholder="Имя" />
+    <input type="password" id="password" placeholder="Пароль" />
+    <button onclick="login()">Войти</button>
+    <button onclick="register()">Регистрация</button>
+
+    <div id="chat" style="display:none; margin-top:20px;">
+        <h3>Чат</h3>
+        <input type="number" id="receiver_id" placeholder="ID получателя" />
+        <input type="text" id="msg" placeholder="Сообщение" />
+        <button onclick="sendMessage()">Отправить</button>
+        <button onclick="loadMessages()">Загрузить</button>
+        <div id="messages"></div>
+    </div>
+
+    <script>
+        let currentUserId = null;
+        const API_URL = 'http://h96136bl.beget.tech/api'; // Важно: не HTTPS, если нет SSL
+
+        function register() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            fetch(`${API_URL}/register.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            })
+            .then(res => res.json())
+            .then(data => alert(data.message));
+        }
+
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            fetch(`${API_URL}/login.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    currentUserId = data.user_id;
+                    alert('Добро пожаловать, ' + data.username + '!');
+                    document.getElementById('chat').style.display = 'block';
+                } else {
+                    alert(data.message);
+                }
+            });
+        }
+
+        function sendMessage() {
+            const receiver_id = document.getElementById('receiver_id').value;
+            const message = document.getElementById('msg').value;
+
+            fetch(`${API_URL}/send_message.php`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sender_id: currentUserId, receiver_id, message })
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message);
+                loadMessages();
+            });
+        }
+
+        function loadMessages() {
+            const receiver_id = document.getElementById('receiver_id').value;
+            fetch(`${API_URL}/get_messages.php?user1=${currentUserId}&user2=${receiver_id}`)
+            .then(res => res.json())
+            .then(data => {
+                const div = document.getElementById('messages');
+                div.innerHTML = data.messages.map(m => 
+                    `<p><b>${m.sender_name}:</b> ${m.message} <i>(${m.timestamp})</i></p>`
+                ).join('');
+            });
+        }
+    </script>
+</body>
+</html>
